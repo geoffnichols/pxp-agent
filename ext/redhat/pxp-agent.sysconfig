@@ -1,2 +1,2 @@
 # You may specify parameters to the PXP Agent here
-#PXP_AGENT_EXTRA_OPTS=--loglevel=debug
+#PXP_AGENT_OPTIONS=--loglevel=debug

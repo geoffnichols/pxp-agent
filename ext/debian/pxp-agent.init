@@ -9,33 +9,34 @@
 ### END INIT INFO
 
 PATH=/opt/puppetlabs/puppet/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DAEMON=/opt/puppetlabs/puppet/bin/pxp-agent
-DAEMON_OPTS="--daemonize "
-PROCNAME="pxp-agent"
-DESC="PXP agent"
-PIDFILE="/var/run/puppetlabs/${PROCNAME}.pid"
 
-test -x $DAEMON || exit 0
+exec=/opt/puppetlabs/puppet/bin/pxp-agent
+prog="pxp-agent"
+desc="PXP agent"
+
+pidfile="/var/run/puppetlabs/${prog}.pid"
+
+[ -x $exec ] || exit 5
 
 [ -r /etc/default/pxp-agent ] && . /etc/default/pxp-agent
 
 . /lib/lsb/init-functions
 
 reload_pxp_agent() {
-    start-stop-daemon --stop --quiet --signal HUP --pidfile $PIDFILE --name $PROCNAME
+    start-stop-daemon --stop --quiet --signal HUP --pidfile $pidfile --name $prog
 }
 
 start_pxp_agent() {
-    start-stop-daemon --start --quiet --pidfile $PIDFILE --startas $DAEMON -- $DAEMON_OPTS $PXP_AGENT_EXTRA_OPTS
+    start-stop-daemon --start --quiet --pidfile $pidfile --startas $exec -- --daemonize $PXP_AGENT_OPTIONS
 }
 
 stop_pxp_agent() {
-    start-stop-daemon --stop --retry TERM/10/KILL/5 --quiet --oknodo --pidfile $PIDFILE --name $PROCNAME
-    rm -f "$PIDFILE"
+    start-stop-daemon --stop --retry TERM/10/KILL/5 --quiet --oknodo --pidfile $pidfile --name $prog
+    rm -f "$pidfile"
 }
 
 restart_pxp_agent() {
-    log_begin_msg "Restarting $DESC"
+    log_begin_msg "Restarting $desc"
     stop_pxp_agent
     start_pxp_agent
     log_end_msg $?
@@ -43,7 +44,7 @@ restart_pxp_agent() {
 
 status_pxp_agent() {
     if (type status_of_proc > /dev/null 2>&1) ; then
-        status_of_proc -p "${PIDFILE}" "${DAEMON}" "${PROCNAME}"
+        status_of_proc -p "${pidfile}" "${exec}" "${prog}"
     else
         status_of_proc() {
             local pidfile daemon name status
@@ -75,23 +76,23 @@ status_pxp_agent() {
                 return $status
             fi
         }
-        status_of_proc -p "${PIDFILE}" "${DAEMON}"
+        status_of_proc -p "${pidfile}" "${exec}"
     fi
 }
 
 case "$1" in
     start)
-        log_begin_msg "Starting $DESC"
+        log_begin_msg "Starting $desc"
         start_pxp_agent
         log_end_msg $?
     ;;
     stop)
-        log_begin_msg "Stopping $DESC"
+        log_begin_msg "Stopping $desc"
         stop_pxp_agent
         log_end_msg $?
     ;;
     reload)
-        log_begin_msg "Reloading $DESC"
+        log_begin_msg "Reloading $desc"
         reload_pxp_agent
         log_end_msg $?
     ;;

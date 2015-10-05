@@ -30,11 +30,15 @@
 #      rc_exit          exit appropriate to overall rc status
 [ -f /etc/rc.status ] && . /etc/rc.status
 [ -f /etc/sysconfig/pxp-agent ] && . /etc/sysconfig/pxp-agent
+
+exec=/opt/puppetlabs/puppet/bin/pxp-agent
+prog="pxp-agent"
+desc="PXP agent"
+
 lockfile=/var/lock/subsys/pxp-agent
 pidfile=/var/run/puppetlabs/pxp-agent.pid
-pxp_agentd=/opt/puppetlabs/puppet/bin/pxp-agent
 
-PXP_AGENT_OPTS="--daemonize "
+[ -x $exec ] || exit 5
 
 # First reset status of this service
 rc_reset
@@ -55,7 +59,7 @@ rc_reset
 
 case "$1" in
     start)
-        echo -n "Starting PXP agent."
+        echo -n "Starting $desc"
         ## Start daemon with startproc(8). If this fails
         ## the echo return value is set appropriate.
 
@@ -65,21 +69,21 @@ case "$1" in
         ## force a process start
         if [ -f "${pidfile}" ]; then
             PID=$(cat "$pidfile")
-            if [ "$PID" -eq $(pgrep -f "$pxp_agentd") ] ; then
+            if [ "$PID" -eq $(pgrep -f "$exec") ] ; then
                 rc_status -v
                 rc_exit
             fi
         fi
-        startproc -f -w -p "${pidfile}" "${pxp_agentd}" ${PXP_AGENT_OPTS} ${PXP_AGENT_EXTRA_OPTS} && touch "${lockfile}"
+        startproc -f -w -p "${pidfile}" "${exec}" --daemonize ${PXP_AGENT_OPTIONS} && touch "${lockfile}"
         # Remember status and be verbose
         rc_status -v
         ;;
     stop)
-        echo -n "Stopping PXP agent."
+        echo -n "Stopping $desc"
         ## Stop daemon with killproc(8) and if this fails
         ## set echo the echo return value.
 
-        killproc -QUIT -p "${pidfile}" "${pxp_agentd}" && rm -f "${lockfile}" "${pidfile}"
+        killproc -QUIT -p "${pidfile}" "${exec}" && rm -f "${lockfile}" "${pidfile}"
 
         # Remember status and be verbose
         rc_status -v
@@ -106,9 +110,9 @@ case "$1" in
         ## do this on signal 1 (SIGHUP).
         ## If it does not support it, restart.
 
-        echo -n "Reloading PXP agent"
+        echo -n "Reloading $desc"
         ## if it supports it:
-        killproc -HUP -p "${pidfile}" "${pxp_agentd}"
+        killproc -HUP -p "${pidfile}" "${exec}"
         rc_status -v
         ;;
     reload)
@@ -116,12 +120,12 @@ case "$1" in
         ## signalling, do nothing (!)
 
         # If it supports signalling:
-        echo -n "Reloading PXP agent"
-        killproc -HUP -p "${pidfile}" "${pxp_agentd}"
+        echo -n "Reloading $desc"
+        killproc -HUP -p "${pidfile}" "${exec}"
         rc_status -v
         ;;
     status)
-        echo -n "Checking for PXP agent service: "
+        echo -n "Checking for $desc service: "
         ## Check status with checkproc(8), if process is running
         ## checkproc will return with exit status 0.
 
@@ -133,7 +137,7 @@ case "$1" in
 
         # NOTE: checkproc returns LSB compliant status values.
         if [ -f "${pidfile}" ]; then
-            checkproc -p "${pidfile}" "${pxp_agentd}"
+            checkproc -p "${pidfile}" "${exec}"
             rc_status -v
         else
             rc_failed 3

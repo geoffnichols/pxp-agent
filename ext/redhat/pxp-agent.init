@@ -15,14 +15,17 @@ PATH=/opt/puppetlabs/puppet/bin:/usr/bin:/sbin:/bin:/usr/sbin
 export PATH
 
 [ -f /etc/sysconfig/pxp-agent ] && . /etc/sysconfig/pxp-agent
-lockfile=/var/lock/subsys/pxp-agent
-piddir=/var/run/puppetlabs
-pidfile=${piddir}/pxp-agent.pid
-pxp_agentd=/opt/puppetlabs/puppet/bin/pxp-agent
+
+exec=/opt/puppetlabs/puppet/bin/pxp-agent
+prog="pxp-agent"
+desc="PXP agent"
+
+lockfile=/var/lock/subsys/$prog
+pidfile=/var/run/puppetlabs/${prog}.pid
 pid=$(cat $pidfile 2> /dev/null)
 RETVAL=0
 
-PXP_AGENT_OPTS="--daemonize "
+[ -x $exec ] || exit 5
 
 # Determine if we can use the -p option to daemon, killproc, and status.
 # RHEL < 5 can't.
@@ -35,7 +38,7 @@ fi
 start() {
     echo -n $"Starting PXP agent: "
     mkdir -p $piddir
-    daemon $daemonopts $pxp_agentd ${PXP_AGENT_OPTS} ${PXP_AGENT_EXTRA_OPTS}
+    daemon $daemonopts $exec --daemonize ${PXP_AGENT_OPTIONS}
     RETVAL=$?
     echo
         [ $RETVAL = 0 ] && touch ${lockfile}
@@ -45,7 +48,7 @@ start() {
 stop() {
     echo -n $"Stopping PXP agent: "
     if [ "$USEINITFUNCTIONS" = "true" ]; then
-      killproc $pidopts $pxp_agentd
+      killproc $pidopts $exec
       RETVAL=$?
     else
       if [ -n "${pid}" ]; then
@@ -61,7 +64,7 @@ stop() {
 reload() {
     echo -n $"Reloading PXP agent: "
     if [ "$USEINITFUNCTIONS" = "true" ]; then
-      killproc $pidopts $pxp_agentd -HUP
+      killproc $pidopts $exec -HUP
       RETVAL=$?
     else
       if [ -n "${pid}" ]; then
@@ -81,30 +84,29 @@ restart() {
 }
 
 rh_status() {
-    base=pxp-agent
     if [ "$USEINITFUNCTIONS" = "true" ]; then
-      status $pidopts $pxp_agentd
+      status $pidopts $exec
       RETVAL=$?
       return $RETVAL
     else
       if [ -n "${pid}" ]; then
         if `ps -p $pid | grep $pid > /dev/null 2>&1`; then
-          echo "${base} (pid ${pid}) is running..."
+          echo "${desc} (pid ${pid}) is running..."
           RETVAL=0
           return $RETVAL
         fi
       fi
       if [ -f "${pidfile}" ] ; then
-        echo "${base} dead but pid file exists"
+        echo "${desc} dead but pid file exists"
         RETVAL=1
         return $RETVAL
       fi
       if [ -f "${lockfile}" ]; then
-        echo "${base} dead but subsys locked"
+        echo "${desc} dead but subsys locked"
         RETVAL=2
         return $RETVAL
       fi
-      echo "${base} is stopped"
+      echo "${desc} is stopped"
       RETVAL=3
       return $RETVAL
     fi
