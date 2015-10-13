@@ -3,4 +3,4 @@
 	url = git@github.com:puppetlabs/leatherman.git
 [submodule "vendor/cpp-pcp-client"]
 	path = vendor/cpp-pcp-client
-	url = git@github.com:puppetlabs/cpp-pcp-client.git
+	url = git@github.com:geoffnichols/cpp-pcp-client.git
